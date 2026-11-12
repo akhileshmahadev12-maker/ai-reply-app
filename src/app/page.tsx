@@ -6,7 +6,7 @@ import { Navbar } from "@/components/Navbar";
 import { AuthModal } from "@/components/AuthModal";
 import { ReplyGenerator } from "@/components/ReplyGenerator";
 import { SavedRepliesList, type SavedReply } from "@/components/SavedRepliesList";
-import { ShieldCheck, Zap, Lock } from "lucide-react";
+import { ShieldCheck, Zap, Lock, ArrowRight } from "lucide-react";
 
 export default function Home() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -77,7 +77,8 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0D1117] text-[#C9D1D9]">
+    <div className="flex min-h-screen flex-col bg-[#FAFAFA] text-[#18181B]">
+      {/* Floating Header */}
       <Navbar
         userEmail={userEmail}
         onOpenAuth={() => setAuthModalOpen(true)}
@@ -88,52 +89,57 @@ export default function Home() {
       />
 
       <main className="flex-1 px-4 py-8 sm:px-6">
-        <div className="mx-auto max-w-7xl space-y-8">
-          {/* Header Hero Banner */}
-          <div className="flex flex-col justify-between gap-4 rounded-2xl border border-[#30363D] bg-gradient-to-r from-[#161B22] via-[#161B22] to-[#1C2128] p-6 shadow-xl sm:flex-row sm:items-center">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="flex h-2 w-2 rounded-full bg-[#7EE787]" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#7EE787]">
-                  Project #2 Proof of Work
+        <div className="mx-auto max-w-5xl space-y-10">
+          {/* Hero Section */}
+          <section className="pt-8 sm:pt-12">
+            <div className="max-w-[680px]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#E4E4E7] bg-white px-3 py-1 text-xs font-medium text-[#52525B]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#18181B]" />
+                Customer communication copilot
+              </div>
+
+              <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl sm:leading-[1.12]">
+                <span className="bg-gradient-to-r from-black to-[#666666] bg-clip-text text-transparent">
+                  Turn difficult customer notes
+                </span>
+                <br />
+                into closed sales and loyalty
+              </h1>
+
+              <p className="mt-4 text-base leading-relaxed text-[#71717A] text-pretty">
+                Draft empathetic replies to angry reviews, resolve pricing pushback, and turn
+                hesitant leads into buyers using Gemini 3.8 Flash with your own private Supabase history.
+              </p>
+
+              <div className="mt-6 flex flex-wrap items-center gap-5 text-xs text-[#71717A]">
+                <span className="inline-flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-[#18181B]" />
+                  Private database isolated with Supabase RLS
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Zap className="h-4 w-4 text-[#18181B]" />
+                  Zero latency generation
                 </span>
               </div>
-              <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-                Turn Difficult Customer Messages into Closed Sales &amp; 5-Star Reviews.
-              </h1>
-              <p className="mt-1.5 max-w-2xl text-xs text-[#8B949E] sm:text-sm">
-                Powered by Google Gemini 3.8 Flash + Supabase Row Level Security.
-                Every user&apos;s history is isolated and private.
-              </p>
             </div>
+          </section>
 
-            <div className="flex flex-col gap-2 shrink-0 sm:items-end">
-              <div className="flex items-center gap-2 text-xs text-[#8B949E]">
-                <ShieldCheck className="h-4 w-4 text-[#7EE787]" />
-                <span>Supabase Auth &amp; RLS Active</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-[#8B949E]">
-                <Zap className="h-4 w-4 text-[#58A6FF]" />
-                <span>Gemini API Streaming Backend</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Not signed in notice */}
+          {/* Guest Mode Notice */}
           {!userEmail && (
-            <div className="flex items-center justify-between rounded-xl border border-[#D29922]/30 bg-[#D29922]/10 p-4 text-xs text-[#E3B341]">
-              <div className="flex items-center gap-2.5">
-                <Lock className="h-4 w-4 shrink-0" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-[#E4E4E7] bg-white p-4 shadow-xs">
+              <div className="flex items-center gap-2.5 text-xs text-[#52525B]">
+                <Lock className="h-4 w-4 shrink-0 text-[#18181B]" />
                 <span>
-                  <strong>Guest Mode:</strong> You can test generating replies, but to save your
-                  generations to your private database history, please sign in.
+                  <strong>Guest Mode:</strong> You can test generation freely. Sign in to save and access your history across devices.
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => setAuthModalOpen(true)}
-                className="shrink-0 rounded-lg bg-[#238636] px-3 py-1.5 font-semibold text-white transition hover:bg-[#2EA043]"
+                className="inline-flex items-center gap-1 shrink-0 text-xs font-semibold text-[#18181B] underline underline-offset-2 hover:text-black"
               >
                 Sign in free
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
@@ -145,7 +151,7 @@ export default function Home() {
             onReplyGenerated={fetchReplies}
           />
 
-          {/* Saved Replies History (Only visible or loaded when user is logged in) */}
+          {/* Saved History */}
           {userEmail && (
             <SavedRepliesList
               replies={replies}
@@ -153,13 +159,33 @@ export default function Home() {
               onDelete={handleDeleteReply}
             />
           )}
+
+          {/* Mandatory Tagline Reveal Section from ai-design-skills B11 */}
+          <section className="border-t border-[#E4E4E7] pt-14 pb-10 text-center">
+            <div className="mx-auto max-w-[680px]">
+              <p className="text-2xl font-semibold tracking-tight text-[#18181B] sm:text-3xl text-balance">
+                The fastest way to de-escalate angry tickets and close hesitant prospects.
+              </p>
+              <p className="mt-3 text-xs text-[#71717A] text-pretty">
+                Consistent tone across every message, backed by private account history and sub-second generation.
+              </p>
+            </div>
+          </section>
         </div>
       </main>
 
-      <footer className="border-t border-[#30363D] bg-[#161B22] py-6 text-center text-xs text-[#8B949E]">
-        <p>ReplyGenius — Built with Next.js 16, Supabase Auth &amp; RLS, and Gemini API.</p>
+      {/* Clean Minimal Footer */}
+      <footer className="border-t border-[#E4E4E7] bg-white py-6">
+        <div className="mx-auto flex max-w-5xl flex-col sm:flex-row items-center justify-between gap-3 px-4 text-xs text-[#71717A] sm:px-6">
+          <p>ReplyGenius &mdash; Built with Next.js 16, Supabase Auth, and Gemini 3.8.</p>
+          <div className="flex items-center gap-4">
+            <a href="#" className="hover:text-[#18181B]">Privacy</a>
+            <a href="#" className="hover:text-[#18181B]">Terms</a>
+          </div>
+        </div>
       </footer>
 
+      {/* Auth Modal */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}

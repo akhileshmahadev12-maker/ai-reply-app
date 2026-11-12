@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Copy, Check, Loader2, RefreshCw, Send } from "lucide-react";
+import { Sparkles, Copy, Check, Loader2, RefreshCw, Send, CheckCircle2 } from "lucide-react";
 
 interface ReplyGeneratorProps {
   userEmail: string | null;
@@ -13,26 +13,22 @@ const TONES = [
   {
     id: "empathetic",
     label: "Empathetic & Apologetic",
-    desc: "For angry reviews, delayed orders, or frustrated customers",
-    icon: "🤝",
+    desc: "For angry reviews, shipment delays, or upset customers",
   },
   {
     id: "professional",
     label: "Professional & Firm",
     desc: "For contract limits, polite pushbacks, and clear policy explanations",
-    icon: "💼",
   },
   {
     id: "sales",
     label: "High-Converting Sales Hook",
     desc: "Turn general inquiries into booked calls or checkout completions",
-    icon: "🚀",
   },
   {
     id: "friendly",
     label: "Warm & Conversational",
-    desc: "Casual, approachable vibe for Twitter/X, Discord, or creator DMs",
-    icon: "✨",
+    desc: "Approachable, clear communication for DMs and creator communities",
   },
 ];
 
@@ -40,23 +36,23 @@ const PRESETS = [
   {
     label: "Angry 1-Star Review",
     message:
-      "This service is completely broken. I was charged $49 and got zero support response for 3 days. Refund my money immediately or I am calling my credit card company!!",
+      "This product is completely broken. I was charged $49 and got zero support response for three days. Refund my money immediately or I am calling my bank.",
     tone: "empathetic",
-    extra: "Offer an immediate refund and 2 free months of Pro as an apology.",
+    extra: "Offer an immediate refund and two free months of service as an apology.",
   },
   {
     label: "Client Asking for 50% Discount",
     message:
-      "Hey, we love your product but your $400/month plan is too high for our budget right now. Can you do $200/month or give us a 50% discount?",
+      "Hey, we love your tool but your $400 monthly price is too high for our budget right now. Can you do $200 per month or give us half off?",
     tone: "sales",
-    extra: "Hold firm on price, but offer a quarterly payment option or smaller starter tier.",
+    extra: "Hold firm on price, but offer a quarterly payment option or a smaller starter tier.",
   },
   {
-    label: "Inbound Sales Lead",
+    label: "Inbound Enterprise Lead",
     message:
-      "Hi there, saw your landing page. We are a team of 15 looking for an automated solution. Do you support team roles and how fast can we onboard?",
+      "Hi, we are a team of fifteen looking for an automated solution. Do you support team roles and how fast can our team onboard?",
     tone: "sales",
-    extra: "Highlight 24-hour onboarding and offer a live 10-minute demo.",
+    extra: "Highlight 24 hour onboarding and offer a ten minute live setup walkthrough.",
   },
 ];
 
@@ -125,92 +121,102 @@ export function ReplyGenerator({
 
   return (
     <div className="space-y-6">
-      {/* Top Presets */}
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
-          Quick 1-Click Demo Scenarios:
-        </p>
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => {
-                setCustomerMessage(p.message);
-                setTone(p.tone);
-                setExtraInstructions(p.extra);
-              }}
-              className="rounded-lg border border-[#30363D] bg-[#161B22] px-3 py-1.5 text-xs text-[#C9D1D9] transition hover:border-[#58A6FF] hover:text-white"
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+      {/* 1-Click Demo Scenarios */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-[#71717A]">
+          Sample scenarios:
+        </span>
+        {PRESETS.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            onClick={() => {
+              setCustomerMessage(p.message);
+              setTone(p.tone);
+              setExtraInstructions(p.extra);
+            }}
+            className="rounded-full border border-[#E4E4E7] bg-white px-3 py-1 text-xs font-medium text-[#3F3F46] transition hover:border-[#18181B] hover:text-[#18181B] active:scale-[0.98]"
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left Column: Input Form */}
-        <div className="rounded-2xl border border-[#30363D] bg-[#161B22] p-5 shadow-lg lg:col-span-7">
-          <form onSubmit={handleGenerate} className="space-y-4">
+        {/* Left Column: Form Card */}
+        <div className="rounded-2xl border border-[#E4E4E7] bg-white p-5 shadow-xs sm:p-6 lg:col-span-7">
+          <form onSubmit={handleGenerate} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[#C9D1D9]">
-                Customer Message / Review / Email:
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-[#18181B]">
+                  Customer message or review
+                </label>
+                <span className="font-mono text-[11px] text-[#A1A1AA]">
+                  {customerMessage.length} characters
+                </span>
+              </div>
               <textarea
                 rows={5}
                 required
                 value={customerMessage}
                 onChange={(e) => setCustomerMessage(e.target.value)}
-                placeholder="Paste the angry customer email, review, or lead message here..."
-                className="mt-1.5 w-full rounded-xl border border-[#30363D] bg-[#0D1117] p-3 text-sm text-white placeholder:text-[#6E7681] focus:border-[#238636] focus:outline-hidden"
+                placeholder="Paste the angry customer email, review, or pricing inquiry here..."
+                className="mt-1.5 w-full rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] p-3.5 text-sm text-[#18181B] placeholder:text-[#A1A1AA] focus:border-[#18181B] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#18181B]"
               />
             </div>
 
             {/* Tone Selector */}
             <div>
-              <label className="block text-xs font-semibold text-[#C9D1D9]">
-                Choose Desired Tone:
+              <label className="block text-xs font-semibold text-[#18181B]">
+                Response tone
               </label>
               <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {TONES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTone(t.id)}
-                    className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition ${
-                      tone === t.id
-                        ? "border-[#238636] bg-[#238636]/10 text-white"
-                        : "border-[#30363D] bg-[#0D1117] text-[#8B949E] hover:border-[#484F58] hover:text-[#C9D1D9]"
-                    }`}
-                  >
-                    <span className="text-base">{t.icon}</span>
-                    <div>
-                      <p className="text-xs font-semibold text-white">{t.label}</p>
-                      <p className="text-[11px] leading-tight text-[#8B949E]">
+                {TONES.map((t) => {
+                  const isSelected = tone === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTone(t.id)}
+                      className={`flex flex-col justify-between rounded-xl border p-3 text-left transition active:scale-[0.98] ${
+                        isSelected
+                          ? "border-[#18181B] bg-[#F4F4F5] text-[#18181B]"
+                          : "border-[#E4E4E7] bg-white text-[#71717A] hover:border-[#A1A1AA] hover:text-[#18181B]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-semibold text-[#18181B]">
+                          {t.label}
+                        </span>
+                        {isSelected && (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-[#18181B]" />
+                        )}
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-[#71717A]">
                         {t.desc}
                       </p>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Optional Instructions */}
+            {/* Special Instructions */}
             <div>
-              <label className="block text-xs font-semibold text-[#C9D1D9]">
-                Special Instructions (Optional):
+              <label className="block text-xs font-semibold text-[#18181B]">
+                Key points to include (optional)
               </label>
               <input
                 type="text"
                 value={extraInstructions}
                 onChange={(e) => setExtraInstructions(e.target.value)}
-                placeholder="e.g. 'Offer a 15% discount code' or 'Mention our launch on Monday'"
-                className="mt-1.5 h-10 w-full rounded-xl border border-[#30363D] bg-[#0D1117] px-3.5 text-xs text-white placeholder:text-[#6E7681] focus:border-[#238636] focus:outline-hidden"
+                placeholder="e.g. Offer 15% discount, or emphasize 24 hour onboarding"
+                className="mt-1.5 h-10 w-full rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] px-3.5 text-xs text-[#18181B] placeholder:text-[#A1A1AA] focus:border-[#18181B] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#18181B]"
               />
             </div>
 
             {errorMsg && (
-              <div className="rounded-xl border border-[#F85149]/30 bg-[#F85149]/10 p-3 text-xs text-[#FF7B72]">
+              <div className="rounded-xl border border-[#FECDD3] bg-[#FFF1F2] p-3 text-xs text-[#E11D48]">
                 {errorMsg}
               </div>
             )}
@@ -218,41 +224,41 @@ export function ReplyGenerator({
             <button
               type="submit"
               disabled={loading}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#238636] font-semibold text-white shadow-md transition hover:bg-[#2EA043] disabled:opacity-50"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#18181B] text-sm font-semibold text-white shadow-xs transition hover:bg-[#27272A] active:scale-[0.98] disabled:opacity-50"
             >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Generating with Gemini...
+                  Generating with Gemini
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  Generate AI Reply
+                  Generate response
                 </>
               )}
             </button>
           </form>
         </div>
 
-        {/* Right Column: AI Output */}
-        <div className="flex flex-col justify-between rounded-2xl border border-[#30363D] bg-[#161B22] p-5 shadow-lg lg:col-span-5">
+        {/* Right Column: Response Card */}
+        <div className="flex flex-col justify-between rounded-2xl border border-[#E4E4E7] bg-white p-5 shadow-xs sm:p-6 lg:col-span-5">
           <div>
-            <div className="flex items-center justify-between border-b border-[#30363D] pb-3">
-              <span className="flex items-center gap-2 text-xs font-semibold text-[#C9D1D9]">
-                <Send className="h-4 w-4 text-[#7EE787]" />
-                Generated Response
+            <div className="flex items-center justify-between border-b border-[#F4F4F5] pb-3">
+              <span className="flex items-center gap-2 text-xs font-semibold text-[#18181B]">
+                <Send className="h-3.5 w-3.5 text-[#18181B]" />
+                Generated draft
               </span>
               {reply && (
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 rounded-lg border border-[#30363D] bg-[#21262D] px-2.5 py-1 text-xs font-medium text-[#C9D1D9] transition hover:bg-[#30363D] hover:text-white"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#E4E4E7] bg-white px-2.5 py-1 text-xs font-semibold text-[#18181B] transition hover:bg-[#F4F4F5] active:scale-[0.98]"
                 >
                   {copied ? (
                     <>
-                      <Check className="h-3.5 w-3.5 text-[#7EE787]" />
-                      Copied!
+                      <Check className="h-3.5 w-3.5 text-[#16A34A]" />
+                      Copied
                     </>
                   ) : (
                     <>
@@ -266,17 +272,19 @@ export function ReplyGenerator({
 
             <div className="mt-4">
               {reply ? (
-                <div className="max-h-[360px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-[#30363D] bg-[#0D1117] p-4 text-xs leading-relaxed text-[#E6EDF3]">
+                <div className="max-h-[380px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] p-4 text-xs leading-relaxed text-[#27272A]">
                   {reply}
                 </div>
               ) : (
-                <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[#30363D] bg-[#0D1117]/50 p-6 text-center text-[#8B949E]">
-                  <Sparkles className="h-8 w-8 text-[#484F58]" />
-                  <p className="mt-3 text-xs font-medium text-[#C9D1D9]">
-                    Your AI-crafted reply will appear here
+                <div className="flex h-72 flex-col items-center justify-center rounded-xl border border-dashed border-[#E4E4E7] bg-[#FAFAFA] p-6 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-[#E4E4E7] text-[#71717A] shadow-2xs">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <p className="mt-3 text-xs font-semibold text-[#18181B]">
+                    Your AI response will appear here
                   </p>
-                  <p className="mt-1 text-[11px] text-[#6E7681]">
-                    Pick a scenario on the left or type your own message to test.
+                  <p className="mt-1 text-[11px] text-[#71717A] max-w-xs">
+                    Select a scenario or paste your customer inquiry on the left to test.
                   </p>
                 </div>
               )}
@@ -284,13 +292,13 @@ export function ReplyGenerator({
           </div>
 
           {reply && (
-            <div className="mt-4 flex items-center justify-between border-t border-[#30363D] pt-3 text-[11px] text-[#8B949E]">
-              <span>Saved automatically to your history</span>
+            <div className="mt-4 flex items-center justify-between border-t border-[#F4F4F5] pt-3 text-[11px] text-[#71717A]">
+              <span>Saved to your private Supabase database</span>
               <button
                 type="button"
                 onClick={() => handleGenerate()}
                 disabled={loading}
-                className="flex items-center gap-1 text-[#58A6FF] hover:underline disabled:opacity-50"
+                className="inline-flex items-center gap-1 font-semibold text-[#18181B] hover:underline disabled:opacity-50"
               >
                 <RefreshCw className="h-3 w-3" />
                 Regenerate

@@ -5,17 +5,19 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "ReplyGenius — AI Customer & Sales Reply Copilot",
+  title: "ReplyGenius — AI Customer Response Copilot",
   description:
-    "Generate empathetic, high-converting customer replies to angry reviews and sales inquiries with Gemini AI and Supabase Auth.",
+    "Turn angry reviews, pricing objections, and difficult customer emails into closed sales with Gemini AI and Supabase.",
 };
 
 export default function RootLayout({
@@ -24,10 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full dark">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-full bg-[#0D1117] antialiased`}
-      >
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+      <body className="min-h-full flex flex-col bg-[#FAFAFA] text-[#18181B] selection:bg-[#18181B] selection:text-white">
         {children}
       </body>
     </html>
