@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { X, Loader2, Sparkles } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -82,8 +82,8 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         </button>
 
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#18181B] text-white">
-            <Sparkles className="h-3.5 w-3.5" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#18181B] text-white font-mono text-[11px] font-bold tracking-tighter">
+            RG
           </div>
           <h2 className="text-base font-semibold tracking-tight text-[#18181B]">
             {mode === "signin" ? "Sign in to ReplyGenius" : "Create account"}

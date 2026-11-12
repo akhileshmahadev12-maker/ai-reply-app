@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Copy, Check, Loader2, RefreshCw, Send, CheckCircle2 } from "lucide-react";
+import { Copy, Check, Loader2, RefreshCw, Send, CheckCircle2 } from "lucide-react";
 
 interface ReplyGeneratorProps {
   userEmail: string | null;
@@ -232,10 +232,7 @@ export function ReplyGenerator({
                   Generating with Gemini
                 </>
               ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  Generate response
-                </>
+                "Generate response"
               )}
             </button>
           </form>
@@ -278,10 +275,10 @@ export function ReplyGenerator({
               ) : (
                 <div className="flex h-72 flex-col items-center justify-center rounded-xl border border-dashed border-[#E4E4E7] bg-[#FAFAFA] p-6 text-center">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-[#E4E4E7] text-[#71717A] shadow-2xs">
-                    <Sparkles className="h-5 w-5" />
+                    <Send className="h-4 w-4" />
                   </div>
                   <p className="mt-3 text-xs font-semibold text-[#18181B]">
-                    Your AI response will appear here
+                    Your drafted reply will appear here
                   </p>
                   <p className="mt-1 text-[11px] text-[#71717A] max-w-xs">
                     Select a scenario or paste your customer inquiry on the left to test.

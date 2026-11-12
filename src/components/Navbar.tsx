@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface NavbarProps {
@@ -20,8 +20,8 @@ export function Navbar({ userEmail, onOpenAuth, onLogout }: NavbarProps) {
     <div className="sticky top-4 z-40 px-4 sm:px-6">
       <header className="mx-auto flex max-w-5xl items-center justify-between rounded-2xl border border-[#E4E4E7] bg-white/85 px-4 py-2.5 shadow-xs backdrop-blur-md">
         <a href="#" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#18181B] text-white">
-            <Sparkles className="h-4 w-4" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#18181B] text-white font-mono text-xs font-bold tracking-tighter">
+            RG
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-sm font-semibold tracking-tight text-[#18181B]">
