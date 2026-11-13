@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     if (apiKey && apiKey.trim().length > 5) {
       try {
-        const ai = new GoogleGenAI({});
+        const ai = new GoogleGenAI({ apiKey });
         const prompt = `You are an expert B2B and direct-to-consumer customer communication specialist.
 Generate a high-converting, professional, and context-aware reply to the customer message below.
 
