@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { AuthModal } from "@/components/AuthModal";
@@ -30,6 +31,16 @@ export default function Home() {
   const checkUser = useCallback(async () => {
     const supabase = createClient();
     const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session?.user?.email) {
+      setUserEmail(session.user.email);
+      fetchReplies();
+      return;
+    }
+
+    const {
       data: { user },
     } = await supabase.auth.getUser();
 
@@ -48,7 +59,7 @@ export default function Home() {
     const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       if (session?.user?.email) {
         setUserEmail(session.user.email);
         fetchReplies();
