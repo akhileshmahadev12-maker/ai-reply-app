@@ -2,6 +2,7 @@
 
 import { LogOut, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/utils";
 
 interface NavbarProps {
   userEmail: string | null;
@@ -11,8 +12,14 @@ interface NavbarProps {
 
 export function Navbar({ userEmail, onOpenAuth, onLogout }: NavbarProps) {
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error("Sign out error:", e);
+      }
+    }
     onLogout();
   }
 

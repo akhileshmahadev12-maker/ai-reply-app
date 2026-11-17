@@ -1,24 +1,35 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { AuthModal } from "@/components/AuthModal";
 import { ReplyGenerator } from "@/components/ReplyGenerator";
 import { SavedRepliesList, type SavedReply } from "@/components/SavedRepliesList";
-import { ShieldCheck, Zap, Lock, ArrowRight } from "lucide-react";
+import { ShieldCheck, Zap, Lock, ArrowRight, X } from "lucide-react";
 
 export default function Home() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [replies, setReplies] = useState<SavedReply[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  const fetchReplies = useCallback(async () => {
+  const handlingCallbackRef = useRef(false);
+  const tokenRef = useRef<string | null>(null);
+
+  const fetchReplies = useCallback(async (tokenOverride?: string) => {
     setLoadingReplies(true);
     try {
-      const res = await fetch("/api/replies");
+      const activeToken = tokenOverride || tokenRef.current;
+      const headers: Record<string, string> = {};
+      if (activeToken) {
+        headers["Authorization"] = `Bearer ${activeToken}`;
+      }
+
+      const res = await fetch("/api/replies", { headers });
       const data = await res.json();
       setReplies(data.replies || []);
     } catch {
@@ -34,9 +45,15 @@ export default function Home() {
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (session?.user?.email) {
-      setUserEmail(session.user.email);
-      fetchReplies();
+    if (session?.user) {
+      const identity =
+        session.user.email ||
+        session.user.user_metadata?.email ||
+        session.user.id;
+      setUserEmail(identity);
+      setAccessToken(session.access_token);
+      tokenRef.current = session.access_token;
+      fetchReplies(session.access_token);
       return;
     }
 
@@ -44,30 +61,134 @@ export default function Home() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (user && user.email) {
-      setUserEmail(user.email);
+    if (user) {
+      const identity = user.email || user.user_metadata?.email || user.id;
+      setUserEmail(identity);
       fetchReplies();
-    } else {
+    } else if (!handlingCallbackRef.current) {
       setUserEmail(null);
+      setAccessToken(null);
+      tokenRef.current = null;
       setReplies([]);
     }
   }, [fetchReplies]);
 
   useEffect(() => {
-    checkUser();
+    const processAuthFromUrl = async () => {
+      if (typeof window === "undefined") return;
+
+      const url = new URL(window.location.href);
+      const searchParams = url.searchParams;
+
+      // 1. Check query error params
+      const queryError =
+        searchParams.get("auth_error") ||
+        searchParams.get("error_description") ||
+        searchParams.get("error");
+
+      // 2. Check hash error or token params (#error=... or #access_token=...)
+      const rawHash = window.location.hash.startsWith("#")
+        ? window.location.hash.substring(1)
+        : window.location.hash;
+      const hashParams = new URLSearchParams(rawHash);
+      const hashError =
+        hashParams.get("error_description") || hashParams.get("error");
+
+      const detectedError = queryError || hashError;
+      if (detectedError) {
+        setAuthError(detectedError);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+
+      // 3. Fallback code exchange if Supabase redirected directly to / instead of /auth/callback
+      const code = searchParams.get("code");
+      if (code) {
+        handlingCallbackRef.current = true;
+        try {
+          const supabase = createClient();
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            setAuthError(error.message);
+          } else if (data.session) {
+            const identity =
+              data.session.user.email ||
+              data.session.user.user_metadata?.email ||
+              data.session.user.id;
+            setUserEmail(identity);
+            setAccessToken(data.session.access_token);
+            tokenRef.current = data.session.access_token;
+            fetchReplies(data.session.access_token);
+          }
+        } catch {
+          setAuthError("Failed to complete authorization code exchange.");
+        } finally {
+          handlingCallbackRef.current = false;
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        return;
+      }
+
+      // 4. Fallback hash access_token exchange (#access_token=...&refresh_token=...)
+      const accessTokenFromHash = hashParams.get("access_token");
+      const refreshTokenFromHash = hashParams.get("refresh_token");
+      if (accessTokenFromHash && refreshTokenFromHash) {
+        handlingCallbackRef.current = true;
+        try {
+          const supabase = createClient();
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessTokenFromHash,
+            refresh_token: refreshTokenFromHash,
+          });
+          if (error) {
+            setAuthError(error.message);
+          } else if (data.session) {
+            const identity =
+              data.session.user.email ||
+              data.session.user.user_metadata?.email ||
+              data.session.user.id;
+            setUserEmail(identity);
+            setAccessToken(data.session.access_token);
+            tokenRef.current = data.session.access_token;
+            fetchReplies(data.session.access_token);
+          }
+        } catch {
+          setAuthError("Failed to restore session from URL.");
+        } finally {
+          handlingCallbackRef.current = false;
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        return;
+      }
+
+      // 5. Default initial check
+      await checkUser();
+    };
+
+    processAuthFromUrl();
 
     const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      if (session?.user?.email) {
-        setUserEmail(session.user.email);
-        fetchReplies();
-      } else {
-        setUserEmail(null);
-        setReplies([]);
+    } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session: Session | null) => {
+        if (session?.user) {
+          const identity =
+            session.user.email ||
+            session.user.user_metadata?.email ||
+            session.user.id;
+          setUserEmail(identity);
+          setAccessToken(session.access_token);
+          tokenRef.current = session.access_token;
+          fetchReplies(session.access_token);
+        } else if (!handlingCallbackRef.current) {
+          setUserEmail(null);
+          setAccessToken(null);
+          tokenRef.current = null;
+          setReplies([]);
+        }
       }
-    });
+    );
 
     return () => {
       subscription.unsubscribe();
@@ -76,8 +197,15 @@ export default function Home() {
 
   async function handleDeleteReply(id: string) {
     try {
+      const activeToken = tokenRef.current;
+      const headers: Record<string, string> = {};
+      if (activeToken) {
+        headers["Authorization"] = `Bearer ${activeToken}`;
+      }
+
       const res = await fetch(`/api/replies/${id}`, {
         method: "DELETE",
+        headers,
       });
       if (res.ok) {
         setReplies((prev) => prev.filter((r) => r.id !== id));
@@ -95,12 +223,34 @@ export default function Home() {
         onOpenAuth={() => setAuthModalOpen(true)}
         onLogout={() => {
           setUserEmail(null);
+          setAccessToken(null);
+          tokenRef.current = null;
           setReplies([]);
         }}
       />
 
       <main className="flex-1 px-4 py-8 sm:px-6">
         <div className="mx-auto max-w-5xl space-y-10">
+          {/* Auth Error Banner */}
+          {authError && (
+            <div className="flex items-start justify-between gap-3 rounded-2xl border border-[#FECDD3] bg-[#FFF1F2] p-4 text-xs text-[#E11D48] shadow-xs">
+              <div className="space-y-1">
+                <p className="font-semibold">Sign In Verification Error: {authError}</p>
+                <p className="text-[#9F1239]">
+                  Please ensure <code>{typeof window !== "undefined" ? window.location.origin : ""}/auth/callback</code> is added to your Supabase Dashboard under <strong>Authentication &rarr; URL Configuration &rarr; Redirect URLs</strong>.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAuthError(null)}
+                className="rounded-md p-1 hover:bg-[#FFE4E6] text-[#9F1239] transition"
+                aria-label="Dismiss error"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           {/* Hero Section */}
           <section className="pt-8 sm:pt-12">
             <div className="max-w-[680px]">
@@ -158,6 +308,7 @@ export default function Home() {
           {/* Main AI Generator Workspace */}
           <ReplyGenerator
             userEmail={userEmail}
+            accessToken={accessToken}
             onOpenAuth={() => setAuthModalOpen(true)}
             onReplyGenerated={fetchReplies}
           />

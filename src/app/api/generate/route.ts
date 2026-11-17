@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedServerClient } from "@/lib/supabase/server";
 import { GoogleGenAI } from "@google/genai";
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user } = await getAuthenticatedServerClient(request);
 
     if (!user) {
       return NextResponse.json(

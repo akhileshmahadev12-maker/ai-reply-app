@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Copy, Check, Loader2, RefreshCw, Send, CheckCircle2 } from "lucide-react";
 
 interface ReplyGeneratorProps {
   userEmail: string | null;
+  accessToken?: string | null;
   onOpenAuth: () => void;
   onReplyGenerated: () => void;
 }
@@ -58,6 +60,7 @@ const PRESETS = [
 
 export function ReplyGenerator({
   userEmail,
+  accessToken,
   onOpenAuth,
   onReplyGenerated,
 }: ReplyGeneratorProps) {
@@ -86,9 +89,22 @@ export function ReplyGenerator({
     setErrorMsg("");
 
     try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const bearer = accessToken || session?.access_token;
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (bearer) {
+        headers["Authorization"] = `Bearer ${bearer}`;
+      }
+
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           customerMessage,
           tone,

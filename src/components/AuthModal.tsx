@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/utils";
 import { X, Loader2 } from "lucide-react";
 
 interface AuthModalProps {
@@ -18,24 +19,134 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [popupBlockedUrl, setPopupBlockedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    async function handleMessage(event: MessageEvent) {
+      if (typeof window === "undefined" || event.origin !== window.location.origin) {
+        return;
+      }
+      const data = event.data;
+      if (!data || typeof data !== "object") return;
+
+      if (data.type === "SUPABASE_AUTH_SUCCESS") {
+        setGoogleLoading(true);
+        try {
+          const supabase = createClient();
+          if (data.access_token && data.refresh_token) {
+            await supabase.auth.setSession({
+              access_token: data.access_token,
+              refresh_token: data.refresh_token,
+            });
+          }
+          onSuccess();
+          onClose();
+        } catch {
+          setErrorMsg("Failed to synchronize authentication session.");
+        } finally {
+          setGoogleLoading(false);
+        }
+      } else if (data.type === "SUPABASE_OAUTH_CODE") {
+        setGoogleLoading(true);
+        try {
+          const supabase = createClient();
+          const { error } = await supabase.auth.exchangeCodeForSession(data.code);
+          if (error) {
+            setErrorMsg(error.message);
+          } else {
+            onSuccess();
+            onClose();
+          }
+        } catch {
+          setErrorMsg("Failed to exchange authentication code.");
+        } finally {
+          setGoogleLoading(false);
+        }
+      } else if (data.type === "SUPABASE_AUTH_ERROR") {
+        setErrorMsg(data.error || "Google sign in failed.");
+        setGoogleLoading(false);
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [isOpen, onClose, onSuccess]);
 
   if (!isOpen) return null;
 
   async function handleGoogleSignIn() {
+    if (!isSupabaseConfigured()) {
+      setErrorMsg("Supabase is not configured yet. Please check your environment variables.");
+      return;
+    }
+
     setGoogleLoading(true);
     setErrorMsg("");
+    setPopupBlockedUrl(null);
+
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+      const isEmbedded = typeof window !== "undefined" && window.self !== window.top;
 
-      if (error) {
-        setErrorMsg(error.message);
-        setGoogleLoading(false);
+      if (isEmbedded) {
+        // Embedded iframe preview: open OAuth in a top-level popup to avoid Google X-Frame-Options block
+        const redirectTo = `${window.location.origin}/auth/callback?popup=1`;
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo,
+            skipBrowserRedirect: true,
+          },
+        });
+
+        if (error) {
+          setErrorMsg(error.message);
+          setGoogleLoading(false);
+          return;
+        }
+
+        if (data?.url) {
+          const width = 500;
+          const height = 620;
+          const left = window.screenX + (window.outerWidth - width) / 2;
+          const top = window.screenY + (window.outerHeight - height) / 2;
+          const popup = window.open(
+            data.url,
+            "supabase_oauth_popup",
+            `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,status=no`
+          );
+
+          if (!popup || popup.closed || typeof popup.closed === "undefined") {
+            setPopupBlockedUrl(data.url);
+            setErrorMsg("Popup was blocked by your browser. Please click the button below to authorize.");
+            setGoogleLoading(false);
+            return;
+          }
+
+          const pollTimer = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(pollTimer);
+              setGoogleLoading(false);
+            }
+          }, 500);
+        }
+      } else {
+        // Normal top-level window redirect
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+
+        if (error) {
+          setErrorMsg(error.message);
+          setGoogleLoading(false);
+        }
       }
     } catch {
       setErrorMsg("Could not initiate Google sign-in. Please try again.");
@@ -45,6 +156,11 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
+    if (!isSupabaseConfigured()) {
+      setErrorMsg("Supabase is not configured yet. Please check your environment variables.");
+      return;
+    }
+
     setLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
@@ -150,6 +266,19 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           )}
           <span>{mode === "signin" ? "Sign in with Google" : "Sign up with Google"}</span>
         </button>
+
+        {popupBlockedUrl && (
+          <div className="mt-2 text-center">
+            <a
+              href={popupBlockedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block rounded-lg bg-[#18181B] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#27272A] active:scale-[0.98]"
+            >
+              Open Google Sign In Window
+            </a>
+          </div>
+        )}
 
         <div className="relative my-4 flex items-center justify-center">
           <div className="w-full border-t border-[#E4E4E7]" />
