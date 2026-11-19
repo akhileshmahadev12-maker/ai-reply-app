@@ -83,6 +83,9 @@ export function ReplyGenerator({
     setLoading(true);
     setErrorMsg("");
 
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => controller.abort(), 10000);
+
     try {
       const supabase = createClient();
       const {
@@ -105,7 +108,10 @@ export function ReplyGenerator({
           tone,
           extraInstructions,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutTimer);
 
       const data = await res.json();
 
@@ -115,9 +121,16 @@ export function ReplyGenerator({
       }
 
       setReply(data.reply);
-      onReplyGenerated();
-    } catch {
-      setErrorMsg("Network error. Please try again.");
+      if (userEmail) {
+        onReplyGenerated();
+      }
+    } catch (err: unknown) {
+      clearTimeout(timeoutTimer);
+      if (err instanceof Error && err.name === "AbortError") {
+        setErrorMsg("Request timed out. Please try again.");
+      } else {
+        setErrorMsg("Network error. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
