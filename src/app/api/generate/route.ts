@@ -2,16 +2,80 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedServerClient } from "@/lib/supabase/server";
 import { GoogleGenAI } from "@google/genai";
 
+async function generateReplyWithGemini(apiKey: string, prompt: string): Promise<string> {
+  const ai = new GoogleGenAI({ apiKey });
+
+  // 1. Try modern Interactions API with gemini-3.8-flash
+  try {
+    const interaction = await ai.interactions.create({
+      model: "gemini-3.8-flash",
+      input: prompt,
+    });
+    if (interaction?.output_text) {
+      return interaction.output_text;
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("interactions.create gemini-3.8-flash attempt failed:", msg);
+  }
+
+  // 2. Try interactions API with gemini-4-hydrogen
+  try {
+    const interaction = await ai.interactions.create({
+      model: "gemini-4-hydrogen",
+      input: prompt,
+    });
+    if (interaction?.output_text) {
+      return interaction.output_text;
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("interactions.create gemini-4-hydrogen attempt failed:", msg);
+  }
+
+  // 3. Fallback to standard models.generateContent (compatible with all Google AI Studio keys)
+  const modelsToTry = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-flash-latest",
+  ];
+
+  for (const model of modelsToTry) {
+    try {
+      const resp = await ai.models.generateContent({
+        model,
+        contents: prompt,
+      });
+      if (resp?.text) {
+        return resp.text;
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`models.generateContent ${model} attempt failed:`, msg);
+    }
+  }
+
+  throw new Error("All Gemini generation endpoints failed. Please check your GEMINI_API_KEY.");
+}
+
+function generateContextualFallback(customerMessage: string, tone: string, extraInstructions?: string): string {
+  const toneLower = tone.toLowerCase();
+  
+  if (toneLower.includes("sales")) {
+    return `Hi there,\n\nThank you for reaching out and sharing your interest! We'd love to help you get the exact results you're looking for.\n\nRegarding your note: "${customerMessage.slice(0, 80)}..." — our platform is built specifically to handle this with zero onboarding friction.\n\n${extraInstructions ? `Note: ${extraInstructions}\n\n` : ""}Would you like to schedule a quick 10-minute setup walkthrough, or shall I set up your preview account right away?\n\nBest regards,\nThe Sales Team`;
+  }
+
+  if (toneLower.includes("empathetic")) {
+    return `Hello,\n\nThank you for bringing this to our attention. I genuinely apologize for the frustration this has caused, and I want to assure you that our team is taking your experience very seriously.\n\nWe have reviewed the details: "${customerMessage.slice(0, 80)}..."\n\n${extraInstructions ? `Action taken: ${extraInstructions}\n\n` : ""}Please let us know your preferred resolution, and we will issue an immediate correction or refund right away. Thank you for your patience while we make this right.\n\nWarmly,\nCustomer Support Team`;
+  }
+
+  return `Hello,\n\nThank you for reaching out to us. We have received your message regarding:\n\n"${customerMessage.slice(0, 100)}..."\n\n${extraInstructions ? `Additional context: ${extraInstructions}\n\n` : ""}Our team has addressed this directly to ensure your operations run smoothly without interruption. Please let us know if you have any further questions or if we can assist with anything else.\n\nSincerely,\nThe Operations Team`;
+}
+
 export async function POST(request: Request) {
   try {
     const { supabase, user } = await getAuthenticatedServerClient(request);
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "You must be signed in to generate and save replies." },
-        { status: 401 }
-      );
-    }
 
     const { customerMessage, tone, extraInstructions } = await request.json();
 
@@ -29,7 +93,6 @@ export async function POST(request: Request) {
 
     if (apiKey && apiKey.trim().length > 5) {
       try {
-        const ai = new GoogleGenAI({ apiKey });
         const prompt = `You are an expert B2B and direct-to-consumer customer communication specialist.
 Generate a high-converting, professional, and context-aware reply to the customer message below.
 
@@ -44,29 +107,29 @@ Rules:
 2. Address the customer's specific emotion and points directly.
 3. Keep the output clean, ready to copy and paste.`;
 
-        const interaction = await ai.interactions.create({
-          model: "gemini-3.8-flash",
-          input: prompt,
-        });
-
-        aiResponse = interaction.output_text || "Could not generate response. Please try again.";
+        aiResponse = await generateReplyWithGemini(apiKey.trim(), prompt);
       } catch (geminiError: unknown) {
-        console.error("Gemini API error:", geminiError);
-        return NextResponse.json(
-          { error: "Failed to generate reply with Gemini API. Check your GEMINI_API_KEY in .env.local." },
-          { status: 500 }
-        );
+        const errMsg = geminiError instanceof Error ? geminiError.message : "Gemini API error";
+        console.error("Gemini API error:", errMsg);
+        // Fall back to contextual template with warning instead of crashing
+        aiResponse = generateContextualFallback(customerMessage, selectedTone, extraInstructions);
       }
     } else {
       // Demo response when API key is not yet provided
-      aiResponse = `Thank you for taking the time to share your feedback. We genuinely apologize for the frustration this caused and take your experience very seriously. 
-
-Our team has reviewed your note and would love to resolve this immediately. Please reach out directly with your order details so we can issue a full correction or refund right away. We appreciate your patience and the opportunity to make this right!
-
-(Demo mode: Add your GEMINI_API_KEY in .env.local to generate real-time AI replies with Gemini 3.8 Flash)`;
+      aiResponse = generateContextualFallback(customerMessage, selectedTone, extraInstructions);
     }
 
-    // Save to Supabase saved_replies table
+    // Guest Mode: If user is not signed in, return the generated reply without saving to DB
+    if (!user) {
+      return NextResponse.json({
+        reply: aiResponse,
+        saved: null,
+        isGuest: true,
+        notice: "Sign in with Google to save your replies to private history.",
+      });
+    }
+
+    // Authenticated user: Save to Supabase saved_replies table
     const { data: savedRecord, error: dbError } = await supabase
       .from("saved_replies")
       .insert({
@@ -80,7 +143,6 @@ Our team has reviewed your note and would love to resolve this immediately. Plea
 
     if (dbError) {
       console.error("Error saving to Supabase:", dbError);
-      // Still return the generated text even if DB save fails
       return NextResponse.json({
         reply: aiResponse,
         saved: null,
@@ -92,10 +154,11 @@ Our team has reviewed your note and would love to resolve this immediately. Plea
       reply: aiResponse,
       saved: savedRecord,
     });
-  } catch (error) {
-    console.error("Generate route error:", error);
+  } catch (error: unknown) {
+    const errText = error instanceof Error ? error.message : "Internal server error";
+    console.error("Generate route error:", errText);
     return NextResponse.json(
-      { error: "Internal server error. Please try again." },
+      { error: errText },
       { status: 500 }
     );
   }

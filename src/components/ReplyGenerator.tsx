@@ -75,11 +75,6 @@ export function ReplyGenerator({
   async function handleGenerate(e?: React.FormEvent) {
     if (e) e.preventDefault();
 
-    if (!userEmail) {
-      onOpenAuth();
-      return;
-    }
-
     if (!customerMessage.trim()) {
       setErrorMsg("Please paste or type a customer message first.");
       return;
@@ -306,7 +301,23 @@ export function ReplyGenerator({
 
           {reply && (
             <div className="mt-4 flex items-center justify-between border-t border-[#F4F4F5] pt-3 text-[11px] text-[#71717A]">
-              <span>Saved to your private Supabase database</span>
+              <span>
+                {userEmail ? (
+                  "Saved to your private Supabase database"
+                ) : (
+                  <>
+                    Preview Mode &bull;{" "}
+                    <button
+                      type="button"
+                      onClick={onOpenAuth}
+                      className="font-semibold text-[#18181B] underline hover:text-black"
+                    >
+                      Sign in
+                    </button>{" "}
+                    to save history
+                  </>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => handleGenerate()}
